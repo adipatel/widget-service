@@ -14,13 +14,30 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
+/**
+ * A WidgetRepository to store & retrieve Widget Objects.
+ * Internally uses three different stores to optimally serve the different request types.
+ *
+ * <p>Repository is designed to optimize reads, & does most of heavy lifting during the write operations.
+ *
+ * <p>
+ *     To provide atomicity over operations WidgetRepository uses a ReentrantReadWriteLock
+ * </p>
+ *
+ *  <p>
+ *      WidgetStore: uses HashMap to provide quick direct access to Widget objects by widgetId::UUID.
+ *      ZIndexStore: Uses a SortedMap to provide quick access to list of Widgets sorted by ZIndex.
+ *      RectangleStore: Uses a SortedSet to optimally search through overlapping Widgets with a given filter.
+ *  </p>
+ *
+ */
 @Repository
 public class WidgetRepository {
-    private static Logger logger = LoggerFactory.getLogger(WidgetRepository.class.getSimpleName());
-    private static ReentrantReadWriteLock widgetsLock = new ReentrantReadWriteLock();
-    private final Map<UUID, Widget> widgetStore = new HashMap<UUID, Widget>();
-    private final SortedMap<Integer, UUID> zIndexStore = new TreeMap<Integer, UUID>();
-    private final SortedSet<Widget> rectangleStore = new TreeSet<Widget>(new Widget.ByCoordinatesWithoutZIndex());
+    private static final Logger logger = LoggerFactory.getLogger(WidgetRepository.class.getSimpleName());
+    private static final ReentrantReadWriteLock widgetsLock = new ReentrantReadWriteLock();
+    private final Map<UUID, Widget> widgetStore = new HashMap<>();
+    private final SortedMap<Integer, UUID> zIndexStore = new TreeMap<>();
+    private final SortedSet<Widget> rectangleStore = new TreeSet<>(new Widget.ByCoordinatesWithoutZIndex());
 
     public WidgetRepository() {
     }
@@ -158,7 +175,7 @@ public class WidgetRepository {
         return rectangleStore.subSet(bottomLeft, topRight)
                 .stream()
                 .filter(w -> w.overlaps(widgetFilterDto))
-                .map(w -> new WidgetReadDto(w))
+                .map(WidgetReadDto::new)
                 .collect(Collectors.toList());
     }
 }
