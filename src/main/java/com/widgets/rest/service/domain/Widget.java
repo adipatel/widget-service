@@ -20,7 +20,6 @@ public class Widget {
 		setYCoordinate(widgetCreateDto.getY());
 		setWidth(widgetCreateDto.getWidth());
 		setHeight(widgetCreateDto.getHeight());
-		setZIndex(widgetCreateDto.getZ());
 		setLasModified(Instant.now());
 	}
 
