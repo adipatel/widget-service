@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,8 +35,13 @@ public class WidgetController {
 		return ResponseEntity.ok(widgetRepository.getAllWidgets(pageRequest));
 	}
 
+	@GetMapping("/filter")
+	public ResponseEntity<Collection<WidgetReadDto>> filterWidgets(@Valid WidgetFilterDto widgetFilterDto) {
+		return ResponseEntity.ok(widgetRepository.filterWidgets(widgetFilterDto));
+	}
+
 	@GetMapping("{id}")
-	public ResponseEntity<WidgetReadDto> getWidgetById(@PathVariable("id") UUID widgetId) {
+	public ResponseEntity<WidgetReadDto> getWidgetById(@PathVariable("id") @Valid UUID widgetId) {
 		return ResponseEntity.ok(widgetRepository.getWidget(widgetId));
 	}
 

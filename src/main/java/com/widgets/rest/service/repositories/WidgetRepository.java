@@ -12,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 @Repository
 public class WidgetRepository {
@@ -19,6 +20,7 @@ public class WidgetRepository {
     private static ReentrantReadWriteLock widgetsLock = new ReentrantReadWriteLock();
     private final Map<UUID, Widget> widgetStore = new HashMap<UUID, Widget>();
     private final SortedMap<Integer, UUID> zIndexStore = new TreeMap<Integer, UUID>();
+    private final SortedSet<Widget> rectangleStore = new TreeSet<Widget>(new Widget.ByCoordinatesWithoutZIndex());
 
     public WidgetRepository() {
     }
@@ -31,6 +33,7 @@ public class WidgetRepository {
             logger.info(String.format("Assigning zIndex=%s to Widget with Id:%s", zIndex, newWidget.getWidgetId()));
             newWidget.setZIndex(zIndex);
             widgetStore.put(newWidget.getWidgetId(), newWidget);
+            rectangleStore.add(newWidget);
             return new WidgetReadDto(newWidget);
         } finally {
             widgetsLock.writeLock().unlock();
@@ -46,6 +49,7 @@ public class WidgetRepository {
             }
             zIndexStore.remove(widgetToRemove.getZIndex());
             widgetStore.remove(widgetId);
+            rectangleStore.remove(widgetToRemove);
         } finally {
             widgetsLock.writeLock().unlock();
         }
@@ -57,6 +61,7 @@ public class WidgetRepository {
         try {
             Widget widgetToUpdate = widgetStore.get(widgetId);
             if (null == widgetToUpdate) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            rectangleStore.remove(widgetToUpdate);
             if (widgetUpdateDto.getX().isPresent())      widgetToUpdate.setXCoordinate(widgetUpdateDto.getX().get());
             if (widgetUpdateDto.getY().isPresent())      widgetToUpdate.setYCoordinate(widgetUpdateDto.getY().get());
             if (widgetUpdateDto.getWidth().isPresent())  widgetToUpdate.setWidth(widgetUpdateDto.getWidth().get());
@@ -68,6 +73,7 @@ public class WidgetRepository {
             }
             widgetToUpdate.setLasModified(Instant.now());
             widgetStore.put(widgetId, widgetToUpdate);
+            rectangleStore.add(widgetToUpdate);
             return new WidgetReadDto(widgetToUpdate);
         } finally {
             widgetsLock.writeLock().unlock();
@@ -94,6 +100,15 @@ public class WidgetRepository {
         }
     }
 
+    public Collection<WidgetReadDto> filterWidgets(WidgetFilterDto widgetFilterDto) {
+        widgetsLock.readLock().lock();
+        try {
+            return findOverlapping(widgetFilterDto);
+        } finally {
+            widgetsLock.readLock().unlock();
+        }
+    }
+
     private Integer computeZ(UUID widgetId, JsonNullable<Integer> z) {
         if (z.isPresent()) {
             updateZIndexes(widgetId, z.get());
@@ -105,6 +120,8 @@ public class WidgetRepository {
         }
     }
 
+
+    // Not updating rectangleStore as only ZIndex is being updated for Widgets
     private Void updateZIndexes(UUID widgetId, Integer newZIndex) {
         UUID widgetToMove = zIndexStore.put(newZIndex, widgetId);
         while (widgetToMove != null) {
@@ -132,5 +149,16 @@ public class WidgetRepository {
         }
         Integer nextKey = iter.hasNext() ? iter.next() : null;
         return new WidgetPageDto(results, nextKey, elementsToReturn);
+    }
+
+    private Collection<WidgetReadDto> findOverlapping(WidgetFilterDto widgetFilterDto) {
+        if (!widgetFilterDto.isValid()) return Collections.emptyList();
+        Widget bottomLeft = new Widget(widgetFilterDto.getX1(), widgetFilterDto.getY1(), 0, 0);
+        Widget topRight = new Widget(widgetFilterDto.getX2()+1, widgetFilterDto.getY1()+1, 0, 0);
+        return rectangleStore.subSet(bottomLeft, topRight)
+                .stream()
+                .filter(w -> w.overlaps(widgetFilterDto))
+                .map(w -> new WidgetReadDto(w))
+                .collect(Collectors.toList());
     }
 }

@@ -7,7 +7,7 @@ public class PageRequestDto {
     private final Integer startKey;
     @Max(500)
     @Positive
-    private Integer pageSize = 10;
+    private Integer pageSize;
 
     public PageRequestDto(Integer startKey, Integer pageSize) {
         this.pageSize = pageSize;
