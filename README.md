@@ -28,8 +28,8 @@ Spring MVC @RestController based HTTP REST APIs for storing & retrieving Widget 
 curl --location --request GET 'http://localhost:8080/api/widgets/?pageSize=2&startKey=-1' \
 --header 'Content-Type: application/json' 
 ```
-* **FILTER** Widgets by passing a rectangle coordinates. Here `(x1,y1) & (x2,y2)` represents bottomLeft & topRight corners of rectangle respectively.
-  For finding an overlap assuming that `(xCoordinate,yCoordinate)` represents the bottomLeft corner and `(xCoordinate+width,yCoordinate+height)` represents the topRight corner of the Widget.
+* **FILTER** Widgets by passing a rectangle coordinates. Here `(x1,y1)` represents the bottomLeft & `(x2,y2)` represents the topRight corners of rectangle.
+  For finding an overlap with a Widget I've assumed that `(xCoordinate,yCoordinate)` represents the bottomLeft corner and `(xCoordinate+width,yCoordinate+height)` represents the topRight corner of the Widget.
   
 ```
 curl --location --request GET 'http://localhost:8080/api/widgets/filter?x1=2&y1=3&x2=4&y2=5' \
