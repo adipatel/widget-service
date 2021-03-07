@@ -38,7 +38,8 @@ public class ListWidgetTests {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        JSONArray listResponseObj = new JSONArray(listResponse);
+
+        JSONArray listResponseObj = (new JSONObject(listResponse).getJSONArray("results"));
         assertThat(WidgetTestUtils.getWidgetId(listResponseObj.getJSONObject(0)), equalTo(widgetC));
         assertThat(WidgetTestUtils.getWidgetId(listResponseObj.getJSONObject(1)), equalTo(widgetB));
         assertThat(WidgetTestUtils.getWidgetId(listResponseObj.getJSONObject(2)), equalTo(widgetA));

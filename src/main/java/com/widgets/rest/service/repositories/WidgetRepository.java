@@ -1,8 +1,6 @@
 package com.widgets.rest.service.repositories;
 
-import com.widgets.rest.service.controllers.dto.WidgetCreateDto;
-import com.widgets.rest.service.controllers.dto.WidgetReadDto;
-import com.widgets.rest.service.controllers.dto.WidgetUpdateDto;
+import com.widgets.rest.service.controllers.dto.*;
 import com.widgets.rest.service.domain.Widget;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.slf4j.Logger;
@@ -14,7 +12,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 @Repository
 public class WidgetRepository {
@@ -30,7 +27,9 @@ public class WidgetRepository {
         widgetsLock.writeLock().lock();
         try {
             Widget newWidget = new Widget(widgetCreateDto);
-            newWidget.setZIndex(computeZ(newWidget.getWidgetId(), widgetCreateDto.getZ()));
+            Integer zIndex = computeZ(newWidget.getWidgetId(), widgetCreateDto.getZ());
+            logger.info(String.format("Assigning zIndex=%s to Widget with Id:%s", zIndex, newWidget.getWidgetId()));
+            newWidget.setZIndex(zIndex);
             widgetStore.put(newWidget.getWidgetId(), newWidget);
             return new WidgetReadDto(newWidget);
         } finally {
@@ -86,12 +85,10 @@ public class WidgetRepository {
         }
     }
 
-    public Collection<WidgetReadDto> getAllWidgets() {
+    public WidgetPageDto getAllWidgets(PageRequestDto pageRequest) {
         widgetsLock.readLock().lock();
         try {
-            return zIndexStore.keySet().stream()
-                    .map(z -> new WidgetReadDto(widgetStore.get(zIndexStore.get(z))))
-                    .collect(Collectors.toUnmodifiableList());
+            return readPage(pageRequest);
         } finally {
             widgetsLock.readLock().unlock();
         }
@@ -111,6 +108,7 @@ public class WidgetRepository {
     private Void updateZIndexes(UUID widgetId, Integer newZIndex) {
         UUID widgetToMove = zIndexStore.put(newZIndex, widgetId);
         while (widgetToMove != null) {
+            logger.info(String.format("Updating zIndex to %s for Widget with Id:%s", newZIndex, widgetToMove));
             newZIndex += 1;
             Widget widgetToUpdate = widgetStore.get(widgetToMove);
             widgetToUpdate.setZIndex(newZIndex);
@@ -118,5 +116,21 @@ public class WidgetRepository {
             widgetToMove = zIndexStore.put(newZIndex, widgetToMove);
         }
         return null;
+    }
+
+    private WidgetPageDto readPage(PageRequestDto pageRequest) {
+        if (zIndexStore.isEmpty()) return new WidgetPageDto(pageRequest.getPageSizeSafe());
+        Integer elementsToReturn = pageRequest.getPageSizeSafe();
+        Integer startZIndex =  (pageRequest.getStartKey() == null) ? zIndexStore.firstKey() : pageRequest.getStartKey();
+
+        List<WidgetReadDto> results = new ArrayList<>(elementsToReturn+1);
+        int n = 0;
+        Iterator<Integer> iter = zIndexStore.tailMap(startZIndex).keySet().iterator();
+        while (n < elementsToReturn  && iter.hasNext()) {
+            results.add(new WidgetReadDto(widgetStore.get(zIndexStore.get(iter.next()))));
+            n++;
+        }
+        Integer nextKey = iter.hasNext() ? iter.next() : null;
+        return new WidgetPageDto(results, nextKey, elementsToReturn);
     }
 }

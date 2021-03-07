@@ -1,10 +1,6 @@
 package com.widgets.rest.service.controllers;
 
-import com.widgets.rest.service.WidgetServiceApp;
-import com.widgets.rest.service.controllers.dto.WidgetCreateDto;
-import com.widgets.rest.service.controllers.dto.WidgetReadDto;
-import com.widgets.rest.service.controllers.dto.WidgetUpdateDto;
-import com.widgets.rest.service.domain.Widget;
+import com.widgets.rest.service.controllers.dto.*;
 import com.widgets.rest.service.repositories.WidgetRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
-import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,8 +30,8 @@ public class WidgetController {
 	}
 
 	@GetMapping
-	public ResponseEntity<Collection<WidgetReadDto>> listAllWidgets() {
-		return ResponseEntity.ok(widgetRepository.getAllWidgets());
+	public ResponseEntity<WidgetPageDto> listAllWidgets(@Valid PageRequestDto pageRequest) {
+		return ResponseEntity.ok(widgetRepository.getAllWidgets(pageRequest));
 	}
 
 	@GetMapping("{id}")
@@ -54,7 +48,7 @@ public class WidgetController {
 
 	@PatchMapping("{id}")
 	public ResponseEntity<WidgetReadDto> updateWidgetById(@PathVariable("id") @Valid  UUID widgetId,
-												   @Valid @RequestBody WidgetUpdateDto widgetUpdateDto) {
+														  @Valid @RequestBody WidgetUpdateDto widgetUpdateDto) {
 		Optional<String> validationErrors = widgetUpdateDto.validationErrors();
 		if (validationErrors.isPresent()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, validationErrors.get());
 		return ResponseEntity.ok(widgetRepository.updateWidget(widgetId, widgetUpdateDto));
