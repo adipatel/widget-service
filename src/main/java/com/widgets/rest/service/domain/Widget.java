@@ -1,5 +1,7 @@
 package com.widgets.rest.service.domain;
 
+import com.widgets.rest.service.controllers.dto.WidgetCreateDto;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -12,17 +14,13 @@ public class Widget {
 	private Integer zIndex;
 	private Instant lasModified;
 
-	public Widget(Integer xCoordinate,
-				  Integer yCoordinate,
-				  Integer width,
-				  Integer height,
-				  Integer zIndex) {
+	public Widget(WidgetCreateDto widgetCreateDto) {
 		this.widgetId = UUID.randomUUID();
-		setXCoordinate(xCoordinate);
-		setYCoordinate(yCoordinate);
-		setWidth(width);
-		setHeight(height);
-		setZIndex(zIndex);
+		setXCoordinate(widgetCreateDto.getX());
+		setYCoordinate(widgetCreateDto.getY());
+		setWidth(widgetCreateDto.getWidth());
+		setHeight(widgetCreateDto.getHeight());
+		setZIndex(widgetCreateDto.getZ());
 		setLasModified(Instant.now());
 	}
 

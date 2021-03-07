@@ -13,8 +13,6 @@ public class WidgetServiceApp {
     public static void main(String[] args) {
         SpringApplication.run(WidgetServiceApp.class, args);
         logger.info("Application Started");
-        logger.error("Application Started");
-        logger.debug("Application Started");
     }
 
 }
